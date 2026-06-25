@@ -12,7 +12,7 @@ export default {
     .addIntegerOption((option) =>
       option
         .setName("amount")
-        .setDescription("Number of messages (1-100)")
+        .setDescription("Number of messages (1-1000)")
         .setRequired(true),
     )
 .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages),
@@ -35,7 +35,7 @@ export default {
     const amount = interaction.options.getInteger("amount");
     const channel = interaction.channel;
 
-    if (amount < 1 || amount > 100)
+    if (amount < 1 || amount > 1000)
       return await replyUserError(interaction, { type: ErrorTypes.VALIDATION, message: 'Please specify a number between 1 and 100.' });
 
     try {
