@@ -1,219 +1,112 @@
 import { SlashCommandBuilder, PermissionFlagsBits } from 'discord.js';
 import { successEmbed } from '../../utils/embeds.js';
 import { logger } from '../../utils/logger.js';
-import { InteractionHelper } from '../../utils/interactionHelper.js';
 
 const ANNOUNCEMENT_CHANNEL_ID = '1519348096566300803';
 
 export default {
   data: new SlashCommandBuilder()
-    .setName('lockdown')
-    .setDescription('Lock the entire server.')
+    .setName('hardlockdown')
+    .setDescription('Hides all channels from everyone.')
     .addIntegerOption(option =>
       option
         .setName('duration')
-        .setDescription('Lockdown duration in minutes')
+        .setDescription('Minutes')
         .setRequired(true)
     )
     .addStringOption(option =>
       option
         .setName('reason')
-        .setDescription('Reason for the lockdown')
+        .setDescription('Reason')
         .setRequired(false)
     )
     .setDefaultMemberPermissions(PermissionFlagsBits.Administrator),
 
-  category: 'moderation',
-
   async execute(interaction) {
-    const deferSuccess = await InteractionHelper.safeDefer(interaction);
-    if (!deferSuccess) return;
-
-    const duration = interaction.options.getInteger('duration');
-    const reason =
-      interaction.options.getString('reason') ||
-      'No reason provided';
-
-    let lockedChannels = 0;
-    let failedChannels = 0;
-
     try {
-      const announcementChannel =
-        interaction.guild.channels.cache.get(
-          ANNOUNCEMENT_CHANNEL_ID
-        );
+      await interaction.deferReply();
 
-      // Announcement
-      if (
-        announcementChannel &&
-        announcementChannel.isTextBased()
-      ) {
-        await announcementChannel.send({
+      const duration = interaction.options.getInteger('duration');
+      const reason = interaction.options.getString('reason') || 'No reason provided';
+
+      const everyone = interaction.guild.roles.everyone;
+
+      const announcement = interaction.guild.channels.cache.get(ANNOUNCEMENT_CHANNEL_ID);
+
+      // ANNOUNCEMENT
+      if (announcement?.isTextBased()) {
+        await announcement.send({
           content:
-            `@everyone\n\n` +
-            `🔒 **SERVER LOCKDOWN ACTIVATED**\n\n` +
-            `Duration: **${duration} minute(s)**\n` +
-            `Reason: **${reason}**\n\n` +
-            `Please wait for staff instructions.`
+            `@everyone 🔴 **HARD LOCKDOWN ACTIVATED**\n\n` +
+            `Server hidden for **${duration} minute(s)**\n` +
+            `Reason: **${reason}**`
         });
       }
 
+      let locked = 0;
+
+      // HARD LOCK (HIDE ALL CHANNELS)
       for (const channel of interaction.guild.channels.cache.values()) {
+        if (!channel.permissionOverwrites) continue;
         if (channel.id === ANNOUNCEMENT_CHANNEL_ID) continue;
 
         try {
-          // Lock @everyone
-          await channel.permissionOverwrites.edit(
-            interaction.guild.roles.everyone,
-            {
-              SendMessages: false,
-              AddReactions: false,
-              SendMessagesInThreads: false,
-              CreatePublicThreads: false,
-              CreatePrivateThreads: false,
-              ViewChannel: false
-            },
-            {
-              reason: `${reason} | Locked by ${interaction.user.tag}`
-            }
-          );
+          await channel.permissionOverwrites.edit(everyone, {
+            ViewChannel: false
+          });
 
-          // Lock all non-staff roles
-          for (const role of interaction.guild.roles.cache.values()) {
-
-            if (role.id === interaction.guild.roles.everyone.id) {
-              continue;
-            }
-
-            if (
-              role.permissions.has(PermissionFlagsBits.Administrator) ||
-              role.permissions.has(PermissionFlagsBits.ManageGuild)
-            ) {
-              continue;
-            }
-
-            await channel.permissionOverwrites.edit(
-              role,
-              {
-                SendMessages: false,
-                AddReactions: false,
-                SendMessagesInThreads: false,
-                CreatePublicThreads: false,
-                CreatePrivateThreads: false,
-                ViewChannel: false
-              },
-              {
-                reason: `${reason} | Locked by ${interaction.user.tag}`
-              }
-            );
-          }
-
-          lockedChannels++;
-
+          locked++;
         } catch (err) {
-          failedChannels++;
-          logger.error(
-            `Failed to lock ${channel.name}:`,
-            err
-          );
+          logger.error(`Hard lock failed: ${channel.name}`, err);
         }
       }
 
-      await InteractionHelper.safeEditReply(interaction, {
+      await interaction.editReply({
         embeds: [
           successEmbed(
-            '🔒 Server Lockdown Activated',
-            `Locked **${lockedChannels}** channels.\nFailed: **${failedChannels}**\nDuration: **${duration} minute(s)**`
+            '🔴 Hard Lockdown Enabled',
+            `Hidden ${locked} channels for ${duration} minute(s)`
           )
         ]
       });
 
-      // Auto unlock
+      // AUTO UNLOCK
       setTimeout(async () => {
         try {
-
-          let unlockedChannels = 0;
+          let unlocked = 0;
 
           for (const channel of interaction.guild.channels.cache.values()) {
+            if (!channel.permissionOverwrites) continue;
             if (channel.id === ANNOUNCEMENT_CHANNEL_ID) continue;
 
             try {
+              await channel.permissionOverwrites.edit(everyone, {
+                ViewChannel: null
+              });
 
-              await channel.permissionOverwrites.edit(
-                interaction.guild.roles.everyone,
-                {
-                  SendMessages: null,
-                  AddReactions: null,
-                  SendMessagesInThreads: null,
-                  CreatePublicThreads: null,
-                  CreatePrivateThreads: null,
-                  ViewChannel: null
-                }
-              );
-
-              for (const role of interaction.guild.roles.cache.values()) {
-
-                if (role.id === interaction.guild.roles.everyone.id) {
-                  continue;
-                }
-
-                if (
-                  role.permissions.has(PermissionFlagsBits.Administrator) ||
-                  role.permissions.has(PermissionFlagsBits.ManageGuild)
-                ) {
-                  continue;
-                }
-
-                await channel.permissionOverwrites.edit(
-                  role,
-                  {
-                    SendMessages: null,
-                    AddReactions: null,
-                    SendMessagesInThreads: null,
-                    CreatePublicThreads: null,
-                    CreatePrivateThreads: null,
-                    ViewChannel: null
-                  }
-                );
-              }
-
-              unlockedChannels++;
-
+              unlocked++;
             } catch (err) {
-              logger.error(
-                `Failed to unlock ${channel.name}:`,
-                err
-              );
+              logger.error(`Unlock failed: ${channel.name}`, err);
             }
           }
 
-          if (
-            announcementChannel &&
-            announcementChannel.isTextBased()
-          ) {
-            await announcementChannel.send({
-              content:
-                `@everyone\n\n` +
-                `🔓 **SERVER LOCKDOWN ENDED**\n\n` +
-                `The lockdown has expired.\n` +
-                `Unlocked **${unlockedChannels}** channels.`
-            });
+          if (announcement?.isTextBased()) {
+            await announcement.send(
+              `🟢 **HARD LOCKDOWN ENDED**\nUnlocked ${unlocked} channels.`
+            );
           }
 
-        } catch (error) {
-          logger.error(
-            'Automatic lockdown release failed:',
-            error
-          );
+        } catch (err) {
+          logger.error('Auto unlock error:', err);
         }
-      }, duration * 60 * 1000);
+      }, duration * 60000);
 
-    } catch (error) {
-      logger.error('Lockdown command error:', error);
+    } catch (err) {
+      logger.error('Hard lockdown error:', err);
 
-      await InteractionHelper.safeEditReply(interaction, {
-        content: 'Failed to perform server lockdown.'
-      });
+      if (interaction.deferred) {
+        await interaction.editReply('Failed to execute hard lockdown.');
+      }
     }
   }
 };
