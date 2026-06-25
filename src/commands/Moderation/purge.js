@@ -12,7 +12,7 @@ export default {
     .addIntegerOption((option) =>
       option
         .setName("amount")
-        .setDescription("Number of messages (1-1000)")
+        .setDescription("Number of messages (1-100)")
         .setRequired(true),
     )
 .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages),
