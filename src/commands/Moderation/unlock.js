@@ -39,14 +39,16 @@ export default {
                 return await replyUserError(interaction, { type: ErrorTypes.UNKNOWN, message: '${channel} is not explicitly locked (everyone can already send messages).' });
             }
 
-            await channel.permissionOverwrites.edit(
-                everyoneRole,
-                { SendMessages: true },
-                {
-                    type: 0,
-                    reason: `Channel unlocked by ${interaction.user.tag}`,
-},
-            );
+await channel.permissionOverwrites.edit(
+    everyoneRole,
+    {
+        SendMessages: null,
+        ViewChannel: null,
+    },
+    {
+        reason: `Channel unlocked by ${interaction.user.tag}`,
+    },
+);
 
             const unlockEmbed = createEmbed(
                 "🔓 Channel Unlocked (Action Log)",
@@ -80,47 +82,8 @@ export default {
                 }
             });
 
-setTimeout(async () => {
-    try {
 
-        await channel.permissionOverwrites.edit(
-            everyoneRole,
-            {
-                SendMessages: null,
-                ViewChannel: null,
-            },
-            {
-                reason: "Automatic lockdown expiry",
-            }
-        );
-
-        await channel.send({
-            embeds: [
-                successEmbed(
-                    "🔓 Channel Unlocked",
-                    `Lockdown expired after ${duration} minute(s).`
-                )
-            ]
-        });
-
-        await logEvent({
-            client,
-            guild: interaction.guild,
-            event: {
-                action: "Automatic Channel Unlock",
-                target: channel.toString(),
-                executor: "System",
-                metadata: {
-                    channelId: channel.id,
-                    duration
-                }
-            }
-        });
-
-    } catch (error) {
-        logger.error("Auto unlock failed:", error);
-    }
-}, duration * 60 * 1000);
+            await InteractionHelper.safeEditReply(interaction, {
                 embeds: [
                     successEmbed(
                         `🔓 **Channel Unlocked**`,
