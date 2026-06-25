@@ -35,6 +35,9 @@ export default {
       return;
     }
 
+const channel = interaction.channel;
+const everyoneRole = interaction.guild.roles.everyone;
+
 const duration = interaction.options.getInteger("duration");
 const reason =
     interaction.options.getString("reason") ||
