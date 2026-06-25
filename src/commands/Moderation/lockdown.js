@@ -34,8 +34,6 @@ export default {
       interaction.options.getString('reason') ||
       'No reason provided';
 
-    const everyoneRole = interaction.guild.roles.everyone;
-
     let lockedChannels = 0;
     let failedChannels = 0;
 
@@ -45,7 +43,7 @@ export default {
           ANNOUNCEMENT_CHANNEL_ID
         );
 
-      // Send lockdown announcement
+      // Announcement
       if (
         announcementChannel &&
         announcementChannel.isTextBased()
@@ -54,36 +52,67 @@ export default {
           content:
             `@everyone\n\n` +
             `🔒 **SERVER LOCKDOWN ACTIVATED**\n\n` +
-            `The server is entering lockdown for **${duration} minute(s)**.\n\n` +
-            `**Reason:** ${reason}\n\n` +
+            `Duration: **${duration} minute(s)**\n` +
+            `Reason: **${reason}**\n\n` +
             `Please wait for staff instructions.`
         });
       }
 
-      // Lock all channels except announcement channel
       for (const channel of interaction.guild.channels.cache.values()) {
         if (channel.id === ANNOUNCEMENT_CHANNEL_ID) continue;
 
         try {
+          // Lock @everyone
           await channel.permissionOverwrites.edit(
-            everyoneRole,
+            interaction.guild.roles.everyone,
             {
               SendMessages: false,
               AddReactions: false,
+              SendMessagesInThreads: false,
               CreatePublicThreads: false,
-              CreatePrivateThreads: false,
-              SendMessagesInThreads: false
+              CreatePrivateThreads: false
             },
             {
               reason: `${reason} | Locked by ${interaction.user.tag}`
             }
           );
 
+          // Lock all non-staff roles
+          for (const role of interaction.guild.roles.cache.values()) {
+
+            if (role.id === interaction.guild.roles.everyone.id) {
+              continue;
+            }
+
+            if (
+              role.permissions.has(PermissionFlagsBits.Administrator) ||
+              role.permissions.has(PermissionFlagsBits.ManageGuild)
+            ) {
+              continue;
+            }
+
+            await channel.permissionOverwrites.edit(
+              role,
+              {
+                SendMessages: false,
+                AddReactions: false,
+                SendMessagesInThreads: false,
+                CreatePublicThreads: false,
+                CreatePrivateThreads: false,
+                ViewChannel: false
+              },
+              {
+                reason: `${reason} | Locked by ${interaction.user.tag}`
+              }
+            );
+          }
+
           lockedChannels++;
+
         } catch (err) {
           failedChannels++;
           logger.error(
-            `Failed to lock channel ${channel.name}:`,
+            `Failed to lock ${channel.name}:`,
             err
           );
         }
@@ -101,27 +130,57 @@ export default {
       // Auto unlock
       setTimeout(async () => {
         try {
+
           let unlockedChannels = 0;
 
           for (const channel of interaction.guild.channels.cache.values()) {
             if (channel.id === ANNOUNCEMENT_CHANNEL_ID) continue;
 
             try {
+
               await channel.permissionOverwrites.edit(
-                everyoneRole,
+                interaction.guild.roles.everyone,
                 {
                   SendMessages: null,
                   AddReactions: null,
+                  SendMessagesInThreads: null,
                   CreatePublicThreads: null,
                   CreatePrivateThreads: null,
-                  SendMessagesInThreads: null
+                  ViewChannel: null
                 }
               );
 
+              for (const role of interaction.guild.roles.cache.values()) {
+
+                if (role.id === interaction.guild.roles.everyone.id) {
+                  continue;
+                }
+
+                if (
+                  role.permissions.has(PermissionFlagsBits.Administrator) ||
+                  role.permissions.has(PermissionFlagsBits.ManageGuild)
+                ) {
+                  continue;
+                }
+
+                await channel.permissionOverwrites.edit(
+                  role,
+                  {
+                    SendMessages: null,
+                    AddReactions: null,
+                    SendMessagesInThreads: null,
+                    CreatePublicThreads: null,
+                    CreatePrivateThreads: null,
+                    ViewChannel: null
+                  }
+                );
+              }
+
               unlockedChannels++;
+
             } catch (err) {
               logger.error(
-                `Failed to unlock channel ${channel.name}:`,
+                `Failed to unlock ${channel.name}:`,
                 err
               );
             }
@@ -133,11 +192,13 @@ export default {
           ) {
             await announcementChannel.send({
               content:
+                `@everyone\n\n` +
                 `🔓 **SERVER LOCKDOWN ENDED**\n\n` +
                 `The lockdown has expired.\n` +
                 `Unlocked **${unlockedChannels}** channels.`
             });
           }
+
         } catch (error) {
           logger.error(
             'Automatic lockdown release failed:',
