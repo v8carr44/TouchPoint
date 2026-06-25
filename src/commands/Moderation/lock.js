@@ -6,10 +6,20 @@ import { getColor } from '../../config/bot.js';
 
 import { InteractionHelper } from '../../utils/interactionHelper.js';
 export default {
-    data: new SlashCommandBuilder()
+   data: new SlashCommandBuilder()
     .setName("lock")
-    .setDescription(
-      "Locks the current channel (prevents @everyone from sending messages).",
+    .setDescription("Lock and hide the channel.")
+    .addIntegerOption(option =>
+        option
+            .setName("duration")
+            .setDescription("Duration in minutes")
+            .setRequired(true)
+    )
+    .addStringOption(option =>
+        option
+            .setName("reason")
+            .setDescription("Reason for the lockdown")
+            .setRequired(false)
     )
 .setDefaultMemberPermissions(PermissionFlagsBits.ManageChannels),
   category: "moderation",
@@ -25,8 +35,10 @@ export default {
       return;
     }
 
-    const channel = interaction.channel;
-    const everyoneRole = interaction.guild.roles.everyone;
+const duration = interaction.options.getInteger("duration");
+const reason =
+    interaction.options.getString("reason") ||
+    "No reason provided";
 
     try {
       const currentPermissions = channel.permissionsFor(everyoneRole);
@@ -34,15 +46,20 @@ export default {
         return await replyUserError(interaction, { type: ErrorTypes.UNKNOWN, message: '${channel} is already locked.' });
       }
 
-      await channel.permissionOverwrites.edit(
-        everyoneRole,
-        { SendMessages: false },
-{ type: 0, reason: `Channel locked by ${interaction.user.tag}` },
-      );
+await channel.permissionOverwrites.edit(
+    everyoneRole,
+    {
+        SendMessages: false,
+        ViewChannel: false,
+    },
+    {
+        reason: `${reason} | Locked by ${interaction.user.tag}`,
+    }
+);
 
       const lockEmbed = createEmbed(
         "🔒 Channel Locked (Action Log)",
-        `${channel} has been locked down by ${interaction.user}.`,
+        `${channel} has been locked down by ${interaction.user} for ${duration} minute(s)..`,
       )
 .setColor(getColor('moderation'))
         .addFields(
