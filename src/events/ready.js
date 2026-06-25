@@ -2,8 +2,14 @@ import { Events } from "discord.js";
 import { logger, startupLog } from "../utils/logger.js";
 import config from "../config/application.js";
 import { reconcileReactionRoleMessages } from "../services/reactionRoleService.js";
-import { reconcileTicketPanels, reconcileVerificationPanels, reconcileReactionRolePanelHealth } from "../services/panelHealthService.js";
+import {
+  reconcileTicketPanels,
+  reconcileVerificationPanels,
+  reconcileReactionRolePanelHealth
+} from "../services/panelHealthService.js";
 import { reconcileLevelRoles } from "../services/levelRoleSyncService.js";
+
+const BOOSTER_ROLE_ID = "1519692726814376006";
 
 export default {
   name: Events.ClientReady,
@@ -41,6 +47,51 @@ export default {
       startupLog(
         `Level role sync: scanned ${levelRoleSummary.scannedGuilds} guilds, pruned ${levelRoleSummary.prunedRewardEntries} stale rewards, re-awarded ${levelRoleSummary.rolesReAwarded} roles, errors ${levelRoleSummary.errors}`
       );
+
+      // Booster role synchronization
+      try {
+        let boostersAdded = 0;
+        let boostersRemoved = 0;
+
+        for (const guild of client.guilds.cache.values()) {
+          await guild.members.fetch();
+
+          const boosterRole = guild.roles.cache.get(BOOSTER_ROLE_ID);
+
+          if (!boosterRole) {
+            startupLog(`Booster role not found in ${guild.name}`);
+            continue;
+          }
+
+          // Give role to current boosters
+          const boosters = guild.members.cache.filter(
+            member => member.premiumSince
+          );
+
+          for (const member of boosters.values()) {
+            if (!member.roles.cache.has(BOOSTER_ROLE_ID)) {
+              await member.roles.add(BOOSTER_ROLE_ID);
+              boostersAdded++;
+            }
+          }
+
+          // Remove role from users who have the role but aren't boosting
+          for (const member of boosterRole.members.values()) {
+            if (!member.premiumSince) {
+              await member.roles.remove(BOOSTER_ROLE_ID);
+              boostersRemoved++;
+            }
+          }
+        }
+
+        startupLog(
+          `Booster role sync: added ${boostersAdded} role(s), removed ${boostersRemoved} role(s)`
+        );
+
+      } catch (error) {
+        logger.error("Error during booster role sync:", error);
+      }
+
     } catch (error) {
       logger.error("Error in ready event:", error);
     }
