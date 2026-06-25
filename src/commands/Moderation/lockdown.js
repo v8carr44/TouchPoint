@@ -70,7 +70,8 @@ export default {
               AddReactions: false,
               SendMessagesInThreads: false,
               CreatePublicThreads: false,
-              CreatePrivateThreads: false
+              CreatePrivateThreads: false,
+              ViewChannel: false
             },
             {
               reason: `${reason} | Locked by ${interaction.user.tag}`
