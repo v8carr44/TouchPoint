@@ -19,8 +19,8 @@ let isFirstCheck = true;
 function buildPingContent() {
   const parts = [];
 
-  if (streamConfig.pingEveryone) {
-    parts.push("@everyone");
+  if (streamConfig.pingRoleId) {
+    parts.push(`<@&${streamConfig.pingRoleId}>`);
   }
 
   if (streamConfig.pingUserId) {
