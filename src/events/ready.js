@@ -8,6 +8,7 @@ import {
   reconcileReactionRolePanelHealth
 } from "../services/panelHealthService.js";
 import { reconcileLevelRoles } from "../services/levelRoleSyncService.js";
+import { startLiveNotifications } from "../services/liveNotificationService.js";
 
 const BOOSTER_ROLE_ID = "1519692726814376006";
 
@@ -91,6 +92,9 @@ export default {
       } catch (error) {
         logger.error("Error during booster role sync:", error);
       }
+
+      // Start Twitch & YouTube live notifications
+      await startLiveNotifications(client);
 
     } catch (error) {
       logger.error("Error in ready event:", error);
