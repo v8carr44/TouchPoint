@@ -94,10 +94,10 @@ async function announceTwitchLive(client, stream) {
     content: buildPingContent(),
     embeds: [buildTwitchEmbed(stream)],
     components: [buildTwitchButtons()],
-    allowedMentions: {
-      parse: streamConfig.pingEveryone ? ["everyone"] : [],
-      users: streamConfig.pingUserId ? [streamConfig.pingUserId] : []
-    }
+allowedMentions: {
+  roles: streamConfig.pingRoleId ? [streamConfig.pingRoleId] : [],
+  users: streamConfig.pingUserId ? [streamConfig.pingUserId] : []
+}
   });
 
   return true;
