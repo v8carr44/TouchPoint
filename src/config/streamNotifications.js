@@ -3,7 +3,7 @@ export default {
 
   // Discord
   announcementChannelId: "1519348096566300803",
-  pingEveryone: true,
+  pingRoleId: "1520762179983380490",
   pingUserId: "487935188798537759",
 
   // Twitch
