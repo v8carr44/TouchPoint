@@ -85,15 +85,15 @@ async function announceYouTube(client, video, type) {
     return false;
   }
 
-  await channel.send({
-    content: buildPingContent(),
-    embeds: [buildYouTubeEmbed(video, type)],
-    components: [buildYouTubeButtons(video.id)],
-    allowedMentions: {
-      parse: streamConfig.pingEveryone ? ["everyone"] : [],
-      users: streamConfig.pingUserId ? [streamConfig.pingUserId] : []
-    }
-  });
+await channel.send({
+  content: buildPingContent(),
+  embeds: [buildYouTubeEmbed(video, type)],
+  components: [buildYouTubeButtons(video.id)],
+  allowedMentions: {
+    roles: streamConfig.pingRoleId ? [streamConfig.pingRoleId] : [],
+    users: streamConfig.pingUserId ? [streamConfig.pingUserId] : []
+  }
+});
 
   return true;
 }
