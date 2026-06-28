@@ -1,0 +1,13 @@
+{
+  "twitch": {
+    "lastStreamId": null,
+    "wasLive": false,
+    "lastCheckedAt": null
+  },
+  "youtube": {
+    "channelId": null,
+    "announcedVideoIds": [],
+    "lastLiveVideoId": null,
+    "lastCheckedAt": null
+  }
+}
