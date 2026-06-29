@@ -25,7 +25,7 @@ export default {
 
     apiKey: process.env.YOUTUBE_API_KEY,
 
-    checkInterval: 120000 // 2 minutes
+    checkInterval: 3600000 // 1 Hour
   },
 
   embeds: {
@@ -44,7 +44,7 @@ export default {
 
     announceVideos: true,
 
-    announceShorts: false,
+    announceShorts: true,
 
     announcePremieres: true
 
