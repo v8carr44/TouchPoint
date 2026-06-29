@@ -13,7 +13,7 @@ export default {
     clientId: process.env.TWITCH_CLIENT_ID,
     clientSecret: process.env.TWITCH_CLIENT_SECRET,
     checkIntervalMs: 60_000,
-    announceIfAlreadyLiveOnStartup: false
+    announceIfAlreadyLiveOnStartup: true
   },
 
   // YouTube
@@ -25,7 +25,7 @@ export default {
     checkIntervalMs: 120_000,
     announceUploads: true,
     announceLivestreams: true,
-    announceIfAlreadyLiveOnStartup: false
+    announceIfAlreadyLiveOnStartup: true
   },
 
   embeds: {
